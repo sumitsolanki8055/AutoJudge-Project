@@ -3,14 +3,13 @@ import joblib
 import os
 
 # --- 1. Load the Trained AI Models ---
-# We use @st.cache_resource so it only loads once (faster)
 @st.cache_resource
 def load_models():
     try:
-        # Get the current directory where app.py is located
+        # Get the current directory
         base_dir = os.path.dirname(__file__)
         
-        # Construct specific paths to the 'models' folder
+        # Construct paths to the 'models' folder
         path_clf = os.path.join(base_dir, 'models', 'model_class.pkl')
         path_reg = os.path.join(base_dir, 'models', 'model_score.pkl')
         path_vec = os.path.join(base_dir, 'models', 'tfidf.pkl')
@@ -22,7 +21,8 @@ def load_models():
         
         return clf, reg, vectorizer
     except Exception as e:
-        st.error(f"Error loading models. Please ensure the 'models/' folder exists. Details: {e}")
+        # This error helps us debug if files are missing
+        st.error(f"⚠️ Error loading models. Please check if 'models/model_class.pkl' exists in your repo. Error details: {e}")
         return None, None, None
 
 clf, reg, vectorizer = load_models()
@@ -34,7 +34,7 @@ st.title("🤖 AutoJudge: Difficulty Predictor")
 st.markdown("### Professional AI System")
 st.markdown("Enter the problem details below to predict its difficulty using Machine Learning.")
 
-# --- 3. The 3 Input Fields ---
+# --- 3. Input Fields ---
 col1, col2 = st.columns(2)
 
 with col1:
@@ -51,25 +51,24 @@ with col2:
 # --- 4. Prediction Logic ---
 if st.button("🚀 Predict Difficulty", use_container_width=True):
     if not clf:
-        st.error("Models failed to load. Check your 'models' folder.")
+        st.error("Models are not loaded. Please check the file structure on GitHub.")
     elif not desc_input:
         st.warning("Please enter at least a Problem Description.")
     else:
-        # A. Preprocessing: Combine all text inputs
+        # Combine inputs
         combined_text = f"{desc_input} {inp_input} {out_input}"
         
-        # B. Feature Extraction: Convert text to numbers (TF-IDF)
+        # Convert text to numbers
         text_vectorized = vectorizer.transform([combined_text])
         
-        # C. Model Inference
-        predicted_class = clf.predict(text_vectorized)[0]  # Easy / Medium / Hard
-        predicted_score = reg.predict(text_vectorized)[0]  # Numerical Value
+        # Predict
+        predicted_class = clf.predict(text_vectorized)[0]
+        predicted_score = reg.predict(text_vectorized)[0]
         
-        # --- 5. Display Results ---
+        # Display Results
         st.divider()
         st.subheader("Analysis Results")
         
-        # Set colors for visual appeal
         color_map = {"Easy": "green", "Medium": "orange", "Hard": "red"}
         color = color_map.get(predicted_class, "blue")
         
@@ -84,4 +83,4 @@ if st.button("🚀 Predict Difficulty", use_container_width=True):
             st.metric(label="Difficulty Score", value=f"{predicted_score:.1f}")
             st.progress(min(predicted_score / 100, 1.0))
             
-        st.success("Prediction generated successfully using Random Forest models.")
+        st.success("Prediction generated successfully.")
