@@ -2,39 +2,34 @@ import streamlit as st
 import joblib
 import os
 
-# --- 1. Smart Model Loader (Fixes Error 13) ---
+# --- 1. Smart Model Loader ---
 @st.cache_resource
 def load_models():
-    # List of possible locations for your models (Professional -> Backup)
-    # This ensures it works whether files are in 'models/' or root.
+    # Define possible paths (checking 'models' folder first, then root)
     base_dir = os.path.dirname(__file__)
-    
     locations = [
-        os.path.join(base_dir, 'models'),  # Check 'models' folder first
-        base_dir                           # Check main folder as backup
+        os.path.join(base_dir, 'models'),
+        base_dir
     ]
     
-    clf, reg, vectorizer = None, None, None
-    
-    # Helper to find and load a specific file
     def find_and_load(filename):
         for loc in locations:
             path = os.path.join(loc, filename)
-            # Check if file exists AND is actually a file (not a folder)
+            # Check if it exists AND is a file (not a folder)
             if os.path.exists(path) and os.path.isfile(path):
                 try:
                     return joblib.load(path)
-                except Exception:
-                    continue # Try next location if load fails
+                except:
+                    continue
         return None
 
+    # Load all 3 components
     clf = find_and_load('model_class.pkl')
     reg = find_and_load('model_score.pkl')
     vectorizer = find_and_load('tfidf.pkl')
     
     return clf, reg, vectorizer
 
-# Load them now
 clf, reg, vectorizer = load_models()
 
 # --- 2. Configure the Page ---
@@ -58,25 +53,29 @@ with col2:
     st.info("3. Output Description")
     out_input = st.text_area("Paste expected output:", height=70, placeholder="e.g., Print the sum of the array...")
 
-# --- 4. Prediction Logic ---
+# --- 4. Prediction Logic (Updated to Fix Crash) ---
 if st.button("🚀 Predict Difficulty", use_container_width=True):
-    if clf is None or vectorizer is None:
-        st.error("⚠️ System Error: Models could not be found.")
-        st.info("Troubleshooting: Please ensure 'model_class.pkl', 'model_score.pkl', and 'tfidf.pkl' are inside the 'models' folder on GitHub.")
+    # CRITICAL FIX: Check ALL models before running
+    if clf is None:
+        st.error("❌ Error: 'model_class.pkl' is missing. Please check your 'models' folder.")
+    elif reg is None:
+        st.error("❌ Error: 'model_score.pkl' is missing. Please check your 'models' folder.")
+    elif vectorizer is None:
+        st.error("❌ Error: 'tfidf.pkl' is missing. Please check your 'models' folder.")
     elif not desc_input:
         st.warning("Please enter at least a Problem Description.")
     else:
-        # A. Preprocessing
+        # If we get here, everything is safe to run!
         combined_text = f"{desc_input} {inp_input} {out_input}"
         
-        # B. Feature Extraction
+        # 1. Vectorize
         text_vectorized = vectorizer.transform([combined_text])
         
-        # C. Model Inference
+        # 2. Predict (Safe now because we checked they exist)
         predicted_class = clf.predict(text_vectorized)[0]
         predicted_score = reg.predict(text_vectorized)[0]
         
-        # --- 5. Display Results ---
+        # 3. Display Results
         st.divider()
         st.subheader("Analysis Results")
         
