@@ -1,96 +1,68 @@
 import streamlit as st
 import joblib
-import os
+import pandas as pd
 
-# --- 1. Smart Model Loader ---
+# Cache models to prevent reloading on every interaction
 @st.cache_resource
-def load_models():
-    # Define possible paths (checking 'models' folder first, then root)
-    base_dir = os.path.dirname(__file__)
-    locations = [
-        os.path.join(base_dir, 'models'),
-        base_dir
-    ]
-    
-    def find_and_load(filename):
-        for loc in locations:
-            path = os.path.join(loc, filename)
-            # Check if it exists AND is a file (not a folder)
-            if os.path.exists(path) and os.path.isfile(path):
-                try:
-                    return joblib.load(path)
-                except:
-                    continue
-        return None
+def get_models():
+    try:
+        clf = joblib.load('model_class.pkl')
+        reg = joblib.load('model_score.pkl')
+        vec = joblib.load('tfidf.pkl')
+        return clf, reg, vec
+    except FileNotFoundError:
+        return None, None, None
 
-    # Load all 3 components
-    clf = find_and_load('model_class.pkl')
-    reg = find_and_load('model_score.pkl')
-    vectorizer = find_and_load('tfidf.pkl')
-    
-    return clf, reg, vectorizer
+clf, reg, vectorizer = get_models()
 
-clf, reg, vectorizer = load_models()
-
-# --- 2. Configure the Page ---
-st.set_page_config(page_title="AutoJudge AI", page_icon="🤖", layout="centered")
+st.set_page_config(page_title="AutoJudge", page_icon="🤖", layout="centered")
 
 st.title("🤖 AutoJudge: Difficulty Predictor")
-st.markdown("### Professional AI System")
-st.markdown("Enter the problem details below to predict its difficulty using Machine Learning.")
+st.write("Predict programming problem difficulty based on the problem statement.")
 
-# --- 3. Input Fields ---
+# Layout for input fields
 col1, col2 = st.columns(2)
 
 with col1:
-    st.info("1. Problem Description")
-    desc_input = st.text_area("Paste the main task here:", height=150, placeholder="e.g., Write a program to find the shortest path...")
+    desc = st.text_area("Problem Description", height=200, 
+                        placeholder="Paste the main task details here...")
 
 with col2:
-    st.info("2. Input Description")
-    inp_input = st.text_area("Paste input constraints:", height=70, placeholder="e.g., The first line contains integer N...")
-    
-    st.info("3. Output Description")
-    out_input = st.text_area("Paste expected output:", height=70, placeholder="e.g., Print the sum of the array...")
+    inp_desc = st.text_area("Input Constraints", height=90, 
+                            placeholder="e.g., The first line contains N...")
+    out_desc = st.text_area("Output Description", height=90, 
+                            placeholder="e.g., Print the result modulo 10^9...")
 
-# --- 4. Prediction Logic (Updated to Fix Crash) ---
-if st.button("🚀 Predict Difficulty", use_container_width=True):
-    # CRITICAL FIX: Check ALL models before running
-    if clf is None:
-        st.error("❌ Error: 'model_class.pkl' is missing. Please check your 'models' folder.")
-    elif reg is None:
-        st.error("❌ Error: 'model_score.pkl' is missing. Please check your 'models' folder.")
-    elif vectorizer is None:
-        st.error("❌ Error: 'tfidf.pkl' is missing. Please check your 'models' folder.")
-    elif not desc_input:
-        st.warning("Please enter at least a Problem Description.")
-    else:
-        # If we get here, everything is safe to run!
-        combined_text = f"{desc_input} {inp_input} {out_input}"
-        
-        # 1. Vectorize
-        text_vectorized = vectorizer.transform([combined_text])
-        
-        # 2. Predict (Safe now because we checked they exist)
-        predicted_class = clf.predict(text_vectorized)[0]
-        predicted_score = reg.predict(text_vectorized)[0]
-        
-        # 3. Display Results
-        st.divider()
-        st.subheader("Analysis Results")
-        
-        color_map = {"Easy": "green", "Medium": "orange", "Hard": "red"}
-        color = color_map.get(predicted_class, "blue")
-        
-        result_col1, result_col2 = st.columns(2)
-        
-        with result_col1:
-            st.markdown("**Predicted Class**")
-            st.markdown(f"<h1 style='color:{color}'>{predicted_class}</h1>", unsafe_allow_html=True)
-            
-        with result_col2:
-            st.markdown("**Predicted Score (0-100)**")
-            st.metric(label="Difficulty Score", value=f"{predicted_score:.1f}")
-            st.progress(min(predicted_score / 100, 1.0))
-            
-        st.success("Prediction generated successfully.")
+if st.button("Predict Difficulty", use_container_width=True):
+    # Error handling
+    if not clf:
+        st.error("Model files not found. Please run 'train_model.py' first.")
+        st.stop()
+    
+    if not desc:
+        st.warning("Please provide a problem description.")
+        st.stop()
+
+    # Preprocess and Vectorize
+    full_text = f"{desc} {inp_desc} {out_desc}"
+    features = vectorizer.transform([full_text])
+    
+    # Predict
+    pred_class = clf.predict(features)[0]
+    pred_score = reg.predict(features)[0]
+    
+    # Visuals
+    st.divider()
+    
+    c1, c2 = st.columns(2)
+    color_map = {"Easy": "green", "Medium": "orange", "Hard": "red"}
+    text_color = color_map.get(pred_class, "blue")
+
+    with c1:
+        st.subheader("Predicted Class")
+        st.markdown(f"<h1 style='color:{text_color}'>{pred_class}</h1>", unsafe_allow_html=True)
+
+    with c2:
+        st.subheader("Difficulty Score")
+        st.metric(label="0 - 100 Scale", value=f"{pred_score:.1f}")
+        st.progress(min(pred_score / 100, 1.0))
