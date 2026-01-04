@@ -8,17 +8,14 @@ Below is a screenshot of the application in action, accurately predicting a "Har
 
 ![AutoJudge Application Screenshot](app_screenshot.png)
 
-## 🚀 Live Demo
-[Link to Live App](https://autojudge-project-fayud3ugxmanel6ejbfaqz.streamlit.app/)
+## 🎥 Demo Video
+[Watch the Project Demo on YouTube/Drive](PASTE_YOUR_LINK_HERE)
 
 ## 🧠 How It Works
 This project uses a **Dual-Model Approach**:
 1.  **NLP Processor (TF-IDF):** Converts raw problem text into numerical features the computer can understand.
 2.  **Classification Model:** Predicts the categorical difficulty level (**Easy, Medium, Hard**).
 3.  **Regression Model:** Predicts a precise numerical complexity score (**0-100**).
-
-## 🎥 Demo Video
-[Watch the Project Demo on YouTube/Drive](PASTE_YOUR_LINK_HERE)
 
 ## 🛠️ Tech Stack
 * **Python**
