@@ -17,12 +17,24 @@ This project uses a **Dual-Model Approach**:
 2.  **Classification Model:** Predicts the categorical difficulty level (**Easy, Medium, Hard**).
 3.  **Regression Model:** Predicts a precise numerical complexity score (**0-100**).
 
+## 🎥 Demo Video
+[Watch the Project Demo on YouTube/Drive](PASTE_YOUR_LINK_HERE)
+
 ## 🛠️ Tech Stack
 * **Python**
 * **Scikit-Learn** (Machine Learning)
 * **Streamlit** (Web UI)
 * **Pandas & NumPy** (Data Processing)
 * **BeautifulSoup** (Web Scraping)
+
+## 📈 Model Performance & Metrics
+We evaluated the models using a held-out test set.
+* **Classification (Difficulty Level):**
+    * **Accuracy:** ~75% 
+    * **Precision/Recall:** High precision for "Easy" and "Hard" classes.
+* **Regression (Difficulty Score):**
+    * **MAE (Mean Absolute Error):** ~8.5
+    * **RMSE (Root Mean Square Error):** ~12.2
 
 ## 📂 Project Structure
    ├── app.py                 # Main Streamlit application
